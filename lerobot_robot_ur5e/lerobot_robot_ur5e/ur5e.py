@@ -10,7 +10,7 @@ from lerobot.robots import Robot
 from lerobot.utils.errors import DeviceNotConnectedError
 import rtde_control
 import rtde_receive
-from .robotiq_gripper import RobotiqGripper
+#from .robotiq_gripper import RobotiqGripper
 from .config_ur5e import UR5EConfig
 import numpy as np
 
@@ -44,10 +44,11 @@ class UR5E(Robot):
         self._gripper_min_period_s: float = 0.05
 
         # Gripper (Robotiq on UR controller tool comms)
-        self.with_gripper = True
-        self.gripper = RobotiqGripper()
-        self.gripper_speed = 255
-        self.gripper_force = 10
+        self.with_gripper = False
+        self.gripper = None
+        #self.gripper = RobotiqGripper()
+        #self.gripper_speed = 255
+        #self.gripper_force = 10
 
     @property
     def _motors_ft(self) -> dict[str, type]:
@@ -89,10 +90,14 @@ class UR5E(Robot):
         if self.is_connected:
             return
         try:
-            self.rtde_ctrl = rtde_control.RTDEControlInterface(self.robot_ip)
+            self.rtde_ctrl = rtde_control.RTDEControlInterface(
+                self.robot_ip,
+                500,
+                rtde_control.RTDEControlInterface.FLAG_USE_EXT_UR_CAP,
+            )
             self.rtde_rec = rtde_receive.RTDEReceiveInterface(self.robot_ip)
-            self.gripper.connect(self.robot_ip, 63352)
-            self.gripper.activate(auto_calibrate=True)
+            #self.gripper.connect(self.robot_ip, 63352)
+            #self.gripper.activate(auto_calibrate=True)
         except Exception as e:
             print(f"Error connecting to robot: {e}")
             return
@@ -127,7 +132,8 @@ class UR5E(Robot):
 
         # Read arm position
         joint_positions = self.rtde_rec.getActualQ()
-        gripper_position = self.gripper.get_current_position() / 255.0 # Normalize to [0, 1]
+        #gripper_position = self.gripper.get_current_position() / 255.0 # Normalize to [0, 1]
+        gripper_position = 0.0
         obs_dict = {f"joint_{i}": val for i, val in enumerate(joint_positions)}
         obs_dict["gripper"] = gripper_position
 
@@ -143,9 +149,11 @@ class UR5E(Robot):
             raise ValueError(f"Invalid action: {action}, features: {self.action_features}")
 
         goal_joint_positions = [action[f"joint_{i}"] for i in range(6)]
-        goal_gripper_position = np.clip(action["gripper"] * 255.0, 0, 255) # Denormalize to [0, 255]
+        #goal_gripper_position = np.clip(action["gripper"] * 255.0, 0, 255) # Denormalize to [0, 255]
+        goal_gripper_position = 0
 
         # Send goal position to the arm
+        t_start = self.rtde_ctrl.initPeriod()
         self.rtde_ctrl.servoJ(
             goal_joint_positions,
             self.acc,
@@ -154,6 +162,7 @@ class UR5E(Robot):
             self.servoj_lookahead,
             self.servoj_gain,
         )
-        self.gripper.move(int(goal_gripper_position), self.gripper_speed, self.gripper_force)
+        self.rtde_ctrl.waitPeriod(t_start)
+        #self.gripper.move(int(goal_gripper_position), self.gripper_speed, self.gripper_force)
 
         return action

@@ -89,7 +89,7 @@ class Gello(Teleoperator):
 
         self.configure()
 
-        if self.config.use_async:
+        if self.config.use_async and self.calibration is not None:
             # Initial read to populate latest_action
             raw_action = self.bus.sync_read("Present_Position", normalize=False)
             self.latest_action = self._process_action(raw_action)

@@ -1,56 +1,31 @@
-"""Configuration dataclass for the UR5e robot plugin.
-
-Defines UR5EConfig with robot IP and default camera setup for ZMQ-streamed
-stereo cameras (ZED2i and ZEDm).
-"""
-
 from dataclasses import dataclass, field
-from lerobot.cameras.configs import ColorMode, Cv2Rotation
-from lerobot.cameras import CameraConfig
+
+from lerobot.cameras.realsense.configuration_realsense import (
+    RealSenseCameraConfig,
+)
+
 from lerobot.robots import RobotConfig
-from lerobot_camera_zmq import ZMQCameraConfig
+
 
 @RobotConfig.register_subclass("ur5e")
 @dataclass
 class UR5EConfig(RobotConfig):
     ip: str
-    cameras: dict[str, CameraConfig] = field(
+
+    cameras: dict = field(
         default_factory=lambda: {
-            "zed2i_left": ZMQCameraConfig(
-                tcp_address="tcp://192.168.1.12:5555",
-                topic="zed2i_left",
-                fps=60,
-                width=672,
-                height=376,
-                color_mode=ColorMode.RGB,
-                rotation=Cv2Rotation.NO_ROTATION,
+            "external": RealSenseCameraConfig(
+                serial_number_or_name="425122300243",
+                width=640,
+                height=480,
+                fps=30,
             ),
-            "zed2i_right": ZMQCameraConfig(
-                tcp_address="tcp://192.168.1.12:5555",
-                topic="zed2i_right",
-                fps=60,
-                color_mode=ColorMode.RGB,
-                rotation=Cv2Rotation.NO_ROTATION,
-                width=672,
-                height=376,
-            ),
-            "zedm_left": ZMQCameraConfig(
-                tcp_address="tcp://192.168.1.12:5555",
-                topic="zedm_left",
-                fps=60,
-                color_mode=ColorMode.RGB,
-                rotation=Cv2Rotation.NO_ROTATION,
-                width=672,
-                height=376,
-            ),
-            "zedm_right": ZMQCameraConfig(
-                tcp_address="tcp://192.168.1.12:5555",
-                topic="zedm_right",
-                fps=60,
-                color_mode=ColorMode.RGB,
-                rotation=Cv2Rotation.NO_ROTATION,
-                width=672,
-                height=376,
+
+            "wrist": RealSenseCameraConfig(
+                serial_number_or_name="419222300600",
+                width=640,
+                height=480,
+                fps=30,
             ),
         }
     )

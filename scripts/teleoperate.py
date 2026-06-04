@@ -29,7 +29,7 @@ def main() -> None:
 
     register_third_party_devices()
 
-    robot_cfg = UR5EConfig(ip="192.168.1.10")
+    robot_cfg = UR5EConfig(ip="192.168.1.101")
     teleop_cfg = GelloConfig(port="/dev/ttyUSB0", id="gello_teleop")
 
     teleop = make_teleoperator_from_config(teleop_cfg)
