@@ -107,15 +107,24 @@ class UR5E(Robot):
             print("before gripper connect")
             print("robot_ip =", self.robot_ip)
             self.gripper.connect()
-
-
             #self.gripper.connect(self.robot_ip, 63352)
             print("after gripper connect")
             self.gripper.activate()
-
             print("after activate")
+            print("starting speed calibration...")
+            self.gripper.calibrate_speed()
+            print("speed calibration done")
+            self.gripper.open(
+                speed=255,
+                force=10,
+                wait=True
+            )
+
+            self._last_gripper_pos = 0
+            print("vmax =", self.gripper._gripper_vmax_bits)
+            print("vmin =", self.gripper._gripper_vmin_bits)
             #self.gripper.activate(auto_calibrate=False)
-            print("4")
+
         except Exception as e:
             print(f"Error connecting to robot: {e}")
             return
@@ -152,7 +161,15 @@ class UR5E(Robot):
         joint_positions = self.rtde_rec.getActualQ()
         #print("reading gripper")
         #gripper_position = self.gripper.get_current_position() / 255.0 # Normalize to [0, 1]
-        gripper_position = self.gripper.position() / 255.0
+        #gripper_position = self.gripper.position() / 255.0
+
+        try:
+            gripper_position = self.gripper.position() / 255.0
+        except Exception:
+            if self._last_gripper_pos is None:
+                gripper_position = 0.0
+            else:
+                gripper_position = self._last_gripper_pos / 255.0
         obs_dict = {f"joint_{i}": val for i, val in enumerate(joint_positions)}
         obs_dict["gripper"] = gripper_position
 
@@ -186,9 +203,11 @@ class UR5E(Robot):
 
         if (
             self._last_gripper_pos is None
-            or abs(new_pos - self._last_gripper_pos) >= 5
+            or abs(new_pos - self._last_gripper_pos) >= 2
         ):
-            self.gripper.move(new_pos)
-            self._last_gripper_pos = new_pos
+            self.gripper.realTimeMove(
+                requestedPosition=new_pos
+            )
 
+            self._last_gripper_pos = new_pos
         return action
